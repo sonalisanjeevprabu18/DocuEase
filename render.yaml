@@ -1,0 +1,62 @@
+# Render Blueprint: free Python web service for the DocuEase API.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# The free plan requires no payment method, spins the service down after
+# 15 minutes without traffic, and wakes it on the next request (~1 minute).
+# Free filesystem is ephemeral: uploaded files are never stored anyway.
+services:
+  - type: web
+    name: docuease-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: ENVIRONMENT
+        value: production
+      # Set this to the exact Vercel origin after the frontend is deployed,
+      # e.g. https://docuease.vercel.app (no trailing slash).
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # --- AI provider: Groq free tier (no credit card) --------------------
+      # Other OpenAI-compatible options: OpenRouter free models, or an Ollama
+      # endpoint you host yourself. To use local Ollama instead, set
+      # AI_PROVIDER=ollama and OLLAMA_BASE_URL to that machine.
+      - key: AI_PROVIDER
+        value: openai_compatible
+      - key: OPENAI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: AI_MODEL
+        value: llama-3.1-8b-instant
+      - key: OPENAI_API_KEY
+        sync: false
+      # --- Free-tier limits (explicit; these are also code defaults) -------
+      - key: MAX_UPLOAD_BYTES
+        value: "5242880"
+      - key: MAX_EXTRACTED_CHARS
+        value: "20000"
+      - key: MAX_GENERATIONS_PER_SESSION
+        value: "3"
+      - key: GENERATION_COOLDOWN_SECONDS
+        value: "15"
+      - key: MAX_OUTPUT_TOKENS
+        value: "1000"
+      - key: RATE_LIMIT_REQUESTS
+        value: "30"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: PROVIDER_TIMEOUT_SECONDS
+        value: "120"
+      - key: TTS_ENABLED
+        value: "true"
+      - key: DEMO_ENABLED
+        value: "true"
+      # In-memory quotas: Render's free disk is ephemeral, so a SQLite file
+      # would not survive redeploys. Leave empty.
+      - key: QUOTA_DB_PATH
+        value: ""
