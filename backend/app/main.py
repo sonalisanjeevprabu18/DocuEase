@@ -3,7 +3,7 @@
 Separation of concerns:
 - ``extraction.py``  document parsing/validation
 - ``providers.py``   AI provider abstraction
-- ``prompts.py``     format/language prompt construction
+- ``prompts.py``     format prompt construction
 - ``limits.py``      rate limiting + session quotas
 - ``demo.py``        AI-free demo outputs
 - ``tts.py``         optional real-MP3 generation
@@ -31,11 +31,10 @@ from .errors import (
 )
 from .extraction import extract_upload, read_upload_limited, sanitize_filename
 from .limits import RateLimiter, SessionQuotaStore
-from .prompts import build_messages, output_matches_language, resolve_language
+from .prompts import build_messages
 from .providers import BaseProvider, build_provider
 from .schemas import (
     FORMATS,
-    LANGUAGES,
     DemoGenerateRequest,
     ExtractResponse,
     GenerateRequest,
@@ -111,7 +110,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=settings.app_name,
         version="1.0.0",
         description="Upload a document; get a faithful, easy-to-understand "
-                    "explanation in your language, plus optional audio.",
+                    "explanation, plus optional audio.",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -178,14 +177,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"name": settings.app_name, "docs": "/docs",
                 "health": "/health", "api": "/api/config"}
 
-    # --- Public config (formats, languages, limits, privacy) ---------------
+    # --- Public config (formats, limits, privacy) --------------------------
     @app.get("/api/config", tags=["config"])
     async def public_config(request: Request, _: RateLimitDep):
         provider: BaseProvider = request.app.state.provider
         return {
             "app_name": settings.app_name,
             "formats": FORMATS,
-            "languages": [{"code": c, "label": n} for c, n in LANGUAGES.items()],
             "limits": {
                 "max_upload_mb": _mb(settings.max_upload_bytes),
                 "max_extracted_chars": settings.max_extracted_chars,
@@ -247,7 +245,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/generate", response_model=GenerateResponse, tags=["ai"])
     async def generate(request: Request, body: GenerateRequest,
                        _: RateLimitDep):
-        language_name = resolve_language(body.language)  # typed 422 if unsupported
         if not body.text.strip():
             raise EmptyDocument("There is no text to explain.")
         if len(body.text) > settings.max_extracted_chars:
@@ -265,22 +262,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         quotas.reserve(sid)  # raises typed 409/429 limit errors
         success = False
         try:
-            messages = build_messages(body.text, body.format, body.language)
+            messages = build_messages(body.text, body.format)
             provider: BaseProvider = request.app.state.provider
             outcome = await provider.chat(
                 messages, max_tokens=settings.max_output_tokens
             )
-            # Refuse to return output in the wrong language: small models can
-            # ignore the instruction. Script-based check where reliable.
-            if output_matches_language(outcome.text, body.language) is False:
-                raise ApiError(
-                    f"The configured model did not reply in {language_name}. It may "
-                    "not support this language reliably - try English, or "
-                    "configure a stronger model. This attempt did not use a "
-                    "generation credit.",
-                    code="language_unsupported", status_code=422,
-                    extra={"language": body.language},
-                )
             success = True
         finally:
             quotas.release(sid, success)
@@ -288,7 +274,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return GenerateResponse(
             output=outcome.text,
             format=body.format,
-            language=body.language,
             provider=outcome.provider,
             model=outcome.model,
             usage=quotas.usage(sid),
@@ -301,14 +286,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not settings.demo_enabled:
             raise ApiError("Demo mode is disabled on this deployment.",
                            code="demo_disabled", status_code=403)
-        resolve_language(body.language)
-        output = demo_output(body.format, body.language)
+        output = demo_output(body.format)
         quotas: SessionQuotaStore = request.app.state.quotas
         sid = body.session_id or "demo"
         return GenerateResponse(
             output=output,
             format=body.format,
-            language=body.language,
             provider="demo",
             model="none (no AI call)",
             usage=quotas.usage(sid),
@@ -321,7 +304,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "MP3 download is disabled on this deployment; use the "
                 "in-browser player.", code="tts_disabled", status_code=404,
             )
-        audio = synthesize(body.text, body.language, settings.tts_max_chars)
+        audio = synthesize(body.text, settings.tts_max_chars)
         return Response(
             content=audio,
             media_type="audio/mpeg",

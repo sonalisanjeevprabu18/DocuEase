@@ -1,4 +1,4 @@
-"""Pydantic schemas and the public catalog of formats and languages."""
+"""Pydantic schemas and the public catalogue of explanation formats."""
 
 from __future__ import annotations
 
@@ -19,40 +19,23 @@ FORMAT_IDS = (
 )
 
 FORMATS: list[dict[str, str]] = [
-    {"id": "short_summary", "label": "Short summary",
-     "description": "A concise overview of the whole document."},
-    {"id": "detailed_summary", "label": "Detailed summary",
-     "description": "A thorough summary that keeps the key details."},
-    {"id": "beginner", "label": "Beginner-friendly explanation",
-     "description": "Simple language for someone new to the topic."},
-    {"id": "bullet_points", "label": "Bullet-point summary",
-     "description": "The main ideas as a clean bullet list."},
-    {"id": "concepts", "label": "Important concepts & definitions",
-     "description": "Key terms and concepts with clear definitions."},
-    {"id": "study_notes", "label": "Study notes",
-     "description": "Structured notes organised for revision."},
-    {"id": "qa", "label": "Question-and-answer format",
-     "description": "Important questions with model answers."},
-    {"id": "section_wise", "label": "Section-wise explanation",
-     "description": "An explanation broken down section by section."},
+    {"id": "short_summary", "label": "Quick Summary",
+     "description": "The essentials in a few sentences."},
+    {"id": "beginner", "label": "Explain Like I'm New",
+     "description": "Plain language, no assumed knowledge."},
+    {"id": "detailed_summary", "label": "Detailed Breakdown",
+     "description": "A thorough look at the whole document."},
+    {"id": "study_notes", "label": "Study Notes",
+     "description": "Revision-ready notes and takeaways."},
+    {"id": "concepts", "label": "Key Concepts",
+     "description": "Important terms, defined clearly."},
+    {"id": "qa", "label": "Ask and Answer",
+     "description": "The questions this document answers."},
+    {"id": "bullet_points", "label": "Bullet-Point Highlights",
+     "description": "The key ideas as scannable points."},
+    {"id": "section_wise", "label": "Section-by-Section",
+     "description": "Each part explained in its own place."},
 ]
-
-# --- Output languages --------------------------------------------------------
-# Only languages the bundled models handle reliably are offered. Requesting
-# anything else is rejected with a clear error instead of a bad translation.
-LANGUAGES: dict[str, str] = {
-    "en": "English",
-    "hi": "Hindi (हिन्दी)",
-    "es": "Spanish (Español)",
-    "fr": "French (Français)",
-    "de": "German (Deutsch)",
-    "pt": "Portuguese (Português)",
-    "bn": "Bengali (বাংলা)",
-    "ja": "Japanese (日本語)",
-    "zh": "Chinese (中文)",
-    "ar": "Arabic (العربية)",
-    "ru": "Russian (Русский)",
-}
 
 FormatId = Literal[
     "short_summary", "detailed_summary", "beginner", "bullet_points",
@@ -65,19 +48,16 @@ class GenerateRequest(BaseModel):
     text: str = Field(..., min_length=1,
                       description="Extracted document text to explain.")
     format: FormatId
-    language: str = "en"
     session_id: str = Field(..., min_length=8, max_length=128)
 
 
 class DemoGenerateRequest(BaseModel):
     format: FormatId
-    language: str = "en"
     session_id: str | None = Field(default=None, max_length=128)
 
 
 class TtsRequest(BaseModel):
     text: str = Field(..., min_length=1)
-    language: str = "en"
     session_id: str = Field(default="anonymous", max_length=128)
 
 
@@ -106,7 +86,6 @@ class UsageInfo(BaseModel):
 class GenerateResponse(BaseModel):
     output: str
     format: str
-    language: str
     provider: str
     model: str
     usage: UsageInfo

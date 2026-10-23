@@ -71,34 +71,33 @@ export function extractDocument(file) {
   return request("/api/documents/extract", { method: "POST", body: form });
 }
 
-export function generateExplanation({ text, format, language, sessionId }) {
+export function generateExplanation({ text, format, sessionId }) {
   return request("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text,
       format,
-      language,
       session_id: sessionId,
     }),
   });
 }
 
-export function generateDemo({ format, language, sessionId }) {
+export function generateDemo({ format, sessionId }) {
   return request("/api/demo/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ format, language, session_id: sessionId }),
+    body: JSON.stringify({ format, session_id: sessionId }),
   });
 }
 
-export async function synthesizeAudio({ text, language, sessionId }) {
+export async function synthesizeAudio({ text, sessionId }) {
   let res;
   try {
     res = await fetch(`${API_BASE}/api/tts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, language, session_id: sessionId }),
+      body: JSON.stringify({ text, session_id: sessionId }),
     });
   } catch {
     throw networkError();

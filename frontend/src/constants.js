@@ -5,34 +5,19 @@ export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_EXTENSIONS = ["pdf", "docx", "txt"];
 
 export const FORMATS = [
-  { id: "short_summary", label: "Short summary", description: "A concise overview of the whole document." },
-  { id: "detailed_summary", label: "Detailed summary", description: "A thorough summary that keeps the key details." },
-  { id: "beginner", label: "Beginner-friendly explanation", description: "Simple language for someone new to the topic." },
-  { id: "bullet_points", label: "Bullet-point summary", description: "The main ideas as a clean bullet list." },
-  { id: "concepts", label: "Important concepts & definitions", description: "Key terms and concepts with clear definitions." },
-  { id: "study_notes", label: "Study notes", description: "Structured notes organised for revision." },
-  { id: "qa", label: "Question-and-answer format", description: "Important questions with model answers." },
-  { id: "section_wise", label: "Section-wise explanation", description: "An explanation broken down section by section." },
-];
-
-export const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "Hindi (हिन्दी)" },
-  { code: "es", label: "Spanish (Español)" },
-  { code: "fr", label: "French (Français)" },
-  { code: "de", label: "German (Deutsch)" },
-  { code: "pt", label: "Portuguese (Português)" },
-  { code: "bn", label: "Bengali (বাংলা)" },
-  { code: "ja", label: "Japanese (日本語)" },
-  { code: "zh", label: "Chinese (中文)" },
-  { code: "ar", label: "Arabic (العربية)" },
-  { code: "ru", label: "Russian (Русский)" },
+  { id: "short_summary", label: "Quick Summary", description: "The essentials in a few sentences." },
+  { id: "beginner", label: "Explain Like I'm New", description: "Plain language, no assumed knowledge." },
+  { id: "detailed_summary", label: "Detailed Breakdown", description: "A thorough look at the whole document." },
+  { id: "study_notes", label: "Study Notes", description: "Revision-ready notes and takeaways." },
+  { id: "concepts", label: "Key Concepts", description: "Important terms, defined clearly." },
+  { id: "qa", label: "Ask and Answer", description: "The questions this document answers." },
+  { id: "bullet_points", label: "Bullet-Point Highlights", description: "The key ideas as scannable points." },
+  { id: "section_wise", label: "Section-by-Section", description: "Each part explained in its own place." },
 ];
 
 export const FALLBACK_CONFIG = {
-  app_name: "DocuEase",
+  app_name: "DocuEase AI",
   formats: FORMATS,
-  languages: LANGUAGES,
   limits: {
     max_upload_mb: 5,
     max_extracted_chars: 20000,
@@ -61,11 +46,10 @@ export const ERROR_MESSAGES = {
   empty_document: "No readable text was found in that document.",
   ocr_required: "This PDF looks scanned (image-only), so there is no text to explain. Run OCR on it first, then upload again.",
   text_too_long: "The document is longer than the per-generation character limit. Nothing was truncated — split it into smaller parts.",
-  language_unsupported: "The configured AI model doesn't support that language. Choose another from the list.",
   format_unsupported: "That explanation format isn't available.",
-  usage_limit_exceeded: "You've used all your free generations for this session.",
-  cooldown_active: "Please wait a few seconds between generations.",
-  generation_in_progress: "A generation is already running. Wait for it to finish.",
+  usage_limit_exceeded: "You've used all your free explanations for this session.",
+  cooldown_active: "Give it a few seconds between explanations.",
+  generation_in_progress: "An explanation is already being written. One moment.",
   rate_limited: "Too many requests from this network. Please wait a minute and try again.",
   provider_timeout: "The AI provider took too long to answer. Try again in a moment.",
   provider_unavailable: "The AI service is unavailable right now. Check the server's provider settings and try again.",
@@ -73,7 +57,6 @@ export const ERROR_MESSAGES = {
   provider_response_invalid: "The AI provider returned an unusable response. Please try again.",
   tts_unavailable: "Audio download isn't available right now. The in-browser player still works.",
   tts_text_too_long: "This explanation is too long to render as one MP3. Use the in-browser player.",
-  tts_language_unsupported: "MP3 download isn't available for this language. Use the in-browser player.",
   tts_disabled: "MP3 download is turned off on this deployment.",
   demo_disabled: "Demo mode is turned off on this deployment.",
   network_error: "Can't reach the DocuEase server. Check your connection (and that the backend is running / VITE_API_BASE_URL is set).",
@@ -83,10 +66,8 @@ export const ERROR_MESSAGES = {
 export function friendlyError(err) {
   const code = err?.code || "internal_error";
   const fallback = ERROR_MESSAGES[code] || err?.message || "Something went wrong. Please try again.";
-  // Prefer the server's specific message when it adds context (e.g. counts),
-  // but fall back to the friendly copy for terse/internal codes.
   const verbose = ["text_too_long", "usage_limit_exceeded", "cooldown_active",
-    "ocr_required", "file_too_large", "language_unsupported"];
+    "ocr_required", "file_too_large"];
   const message = verbose.includes(code) && err?.message ? err.message : fallback;
   return {
     code,

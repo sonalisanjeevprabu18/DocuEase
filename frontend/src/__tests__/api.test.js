@@ -42,7 +42,7 @@ describe("api client", () => {
         ),
       ),
     );
-    await expect(generateExplanation({ text: "x", format: "qa", language: "en", sessionId: "s" }))
+    await expect(generateExplanation({ text: "x", format: "qa", sessionId: "s" }))
       .rejects.toMatchObject({
         name: "ApiError",
         code: "usage_limit_exceeded",
@@ -64,12 +64,11 @@ describe("api client", () => {
     await extractDocument(new File(["hello"], "doc.txt", { type: "text/plain" }));
     expect(fetchMock.mock.calls[0][1].body).toBeInstanceOf(FormData);
 
-    await generateDemo({ format: "qa", language: "en", sessionId: "s1" });
+    await generateDemo({ format: "qa", sessionId: "s1" });
     const secondCall = fetchMock.mock.calls[1];
     expect(secondCall[0]).toContain("/api/demo/generate");
     expect(JSON.parse(secondCall[1].body)).toEqual({
       format: "qa",
-      language: "en",
       session_id: "s1",
     });
   });
@@ -84,7 +83,7 @@ describe("api client", () => {
         }),
       ),
     );
-    const blob = await synthesizeAudio({ text: "hi", language: "en", sessionId: "s" });
+    const blob = await synthesizeAudio({ text: "hi", sessionId: "s" });
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.size).toBeGreaterThan(0);
     expect(blob.type).toBe("audio/mpeg");
@@ -96,7 +95,7 @@ describe("api client", () => {
       ),
     );
     await expect(
-      synthesizeAudio({ text: "hi", language: "en", sessionId: "s" }),
+      synthesizeAudio({ text: "hi", sessionId: "s" }),
     ).rejects.toBeInstanceOf(ApiError);
   });
 });

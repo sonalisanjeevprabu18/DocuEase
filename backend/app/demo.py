@@ -1,8 +1,8 @@
 """Demo mode: pre-written sample explanations that need NO AI call.
 
 The sample topic is photosynthesis; the canned answers are plain Markdown so
-the demo exercises exactly the same UI path (format, language note, copy,
-download, audio) as a real generation without spending a provider request.
+the demo exercises exactly the same UI path (format, copy, download, audio)
+as a real generation without spending a provider request.
 """
 
 from __future__ import annotations
@@ -36,14 +36,6 @@ Factors that affect the rate of photosynthesis are light intensity, carbon
 Why it matters: photosynthesis is the foundation of most food chains and is
 responsible for the oxygen in Earth's atmosphere.
 """
-
-_DEMO_NOTE_EN = ""
-
-_DEMO_NOTE_OTHER = (
-    "> Note: Demo mode returns this pre-written English sample without calling "
-    "any AI provider. Choose a real document to see output in your selected "
-    "language.\n\n"
-)
 
 OUTPUTS: dict[str, str] = {
     "short_summary": (
@@ -183,13 +175,10 @@ OUTPUTS: dict[str, str] = {
 }
 
 
-def demo_output(format_id: str, language: str) -> str:
+def demo_output(format_id: str) -> str:
     if format_id not in FORMAT_IDS:
         raise ApiError(
             f"Unknown format '{format_id}'.", code="format_unsupported",
             status_code=422,
         )
-    body = OUTPUTS[format_id]
-    if language != "en":
-        return _DEMO_NOTE_OTHER + body
-    return body
+    return OUTPUTS[format_id]

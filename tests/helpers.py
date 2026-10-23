@@ -111,11 +111,10 @@ def upload(client, filename: str, content: bytes,
 
 
 def generate_payload(text: str = "Some document text.", *,
-                     format: str = "short_summary", language: str = "en",
+                     format: str = "short_summary",
                      session_id: str = "test-session-0001") -> dict:
     return {
         "text": text,
         "format": format,
-        "language": language,
         "session_id": session_id,
     }

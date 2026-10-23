@@ -1,8 +1,7 @@
 # DocuEase — Document Simplifier & Audio Assistant
 
 Upload a PDF, DOCX or TXT and get a faithful, easy-to-understand explanation in
-eight formats and eleven languages — readable, copyable, downloadable, and
-listenable.
+eight formats — readable, copyable, downloadable, and listenable.
 
 DocuEase is a small full-stack application built for free-tier hosting:
 
@@ -24,7 +23,7 @@ limit is enforced server-side.
 | --- | --- |
 | Upload | PDF, DOCX, TXT up to **5 MB**; headings, lists and tables preserved; scanned-PDF detection with OCR guidance; empty, corrupted, oversized and unsupported files rejected with clear messages |
 | Formats | Short summary, detailed summary, beginner-friendly, bullet points, concepts & definitions, study notes, Q&A, section-wise |
-| Languages | English, Hindi, Spanish, French, German, Portuguese, Bengali, Japanese, Chinese, Arabic, Russian; unsupported codes are rejected, and wrong-script model output is rejected instead of shown |
+| Output | English only: small free-tier models handle it reliably, so there is no language selector and no half-translated result |
 | Results | Markdown rendering, copy, download as **TXT** or **Markdown**, usage badge |
 | Audio | Play / pause / resume / stop (browser TTS), speed control; **MP3 download only when a real file is generated** |
 | Demo mode | Pre-written sample explanations, no AI call, does not consume a generation |
@@ -39,8 +38,8 @@ limit is enforced server-side.
 ┌───────────────────────────┐        HTTPS / JSON        ┌───────────────────────────────────┐
 │  Browser (React + Vite)   │ ─────────────────────────► │  FastAPI backend (Python 3.11)    │
 │  • drag & drop upload     │ ◄───────────────────────── │  • extraction.py  PDF/DOCX/TXT    │
-│  • format + language      │        multipart + JSON    │  • limits.py      quotas + rates  │
-│  • Markdown results       │                            │  • prompts.py     format/language │
+│  • format tiles           │        multipart + JSON    │  • limits.py      quotas + rates  │
+│  • Markdown results       │                            │  • prompts.py     format prompts  │
 │  • SpeechSynthesis audio  │                            │  • providers.py   AI abstraction  │
 │  • copy / TXT / MD        │                            │  • tts.py         optional MP3    │
 └───────────────────────────┘                            └────────────────┬──────────────────┘
@@ -66,11 +65,11 @@ docuease-ai/
 │   │   ├── config.py        # all limits + provider settings (env-driven)
 │   │   ├── extraction.py    # validation + PDF/DOCX/TXT parsing
 │   │   ├── providers.py     # Ollama + OpenAI-compatible providers
-│   │   ├── prompts.py       # format/language prompts, language checks
+│   │   ├── prompts.py       # per-format prompt construction
 │   │   ├── limits.py        # per-IP rate limiting, session quotas
 │   │   ├── demo.py          # pre-written sample outputs (no AI)
 │   │   ├── tts.py           # optional real MP3 generation (gTTS)
-│   │   ├── schemas.py       # Pydantic models + format/language catalogue
+│   │   ├── schemas.py       # Pydantic models + format catalogue
 │   │   └── errors.py        # stable error codes -> HTTP responses
 │   ├── requirements.txt
 │   ├── requirements-dev.txt
@@ -127,7 +126,7 @@ Open <http://localhost:5173>. The dev server proxies `/api` and `/health` to
 
 ### 3. Try it
 
-Upload a document, pick a format and language, and generate. Or click
+Upload a document, pick a format, and generate. Or click
 **Try demo (no AI call)** to exercise the whole UI without a model.
 
 ---
@@ -192,9 +191,9 @@ Upstream `429`s are surfaced as a clear, retryable error and never bypassed.
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Liveness + provider config (`?deep=true` probes the provider) |
-| `GET` | `/api/config` | Formats, languages, limits, provider, privacy text, sample |
+| `GET` | `/api/config` | Formats, limits, provider, privacy text, sample |
 | `POST` | `/api/documents/extract` | Multipart `file` → text, word/char counts, headings, warnings |
-| `POST` | `/api/generate` | `{text, format, language, session_id}` → explanation + usage |
+| `POST` | `/api/generate` | `{text, format, session_id}` → explanation + usage |
 | `POST` | `/api/demo/generate` | Same shape without an AI call; does not consume a generation |
 | `POST` | `/api/tts` | Returns real `audio/mpeg` bytes, or a typed error |
 
@@ -206,20 +205,20 @@ Errors always look like:
 
 Stable codes include `unsupported_type`, `file_too_large`, `invalid_file`,
 `corrupted_file`, `empty_document`, `ocr_required`, `text_too_long`,
-`language_unsupported`, `usage_limit_exceeded`, `cooldown_active`,
+`usage_limit_exceeded`, `cooldown_active`,
 `generation_in_progress`, `rate_limited`, `provider_unavailable`,
 `provider_timeout`, `provider_rate_limited`, `provider_response_invalid`,
-`tts_unavailable`, `tts_text_too_long`, `tts_language_unsupported`.
+`tts_unavailable`, `tts_text_too_long`.
 
 ---
 
 ## Testing
 
 ```bash
-# Backend — 95 tests, no network or model required
+# Backend — 86 tests, no network or model required
 python -m pytest -q
 
-# Frontend — 30 tests (Vitest + Testing Library)
+# Frontend — 43 tests (Vitest + Testing Library)
 cd frontend
 npm test
 
@@ -230,7 +229,7 @@ npm run build
 The suite covers: extraction of every supported format, corrupted/scanned/empty
 files, MIME and magic-byte validation, filename traversal, all limit errors,
 cooldown and concurrency, rate limiting, provider timeouts/429/malformed
-responses, language compliance, CORS, security headers, demo mode, TTS error
+responses, CORS, security headers, demo mode, TTS error
 paths, and the full upload → generate → copy flow in the UI.
 
 CI (`.github/workflows/ci.yml`) runs both suites and the production build on
@@ -330,11 +329,10 @@ curl -s -X POST "$BASE/api/documents/extract" \
 
 # Generation (replace session id; text must be ≤ 20,000 chars)
 curl -s -X POST "$BASE/api/generate" -H "Content-Type: application/json" \
-  -d '{"text":"Revenue grew 12% in Q3.","format":"short_summary","language":"en","session_id":"verify-0001"}'
+  -d '{"text":"Revenue grew 12% in Q3.","format":"short_summary","session_id":"verify-0001"}'
 ```
 
-Then in the browser: upload a PDF/DOCX/TXT, generate, switch language, play the
-audio, download TXT/Markdown, and confirm the 4th generation returns the usage
+Then in the browser: upload a PDF/DOCX/TXT, generate, play the audio, download TXT/Markdown, and confirm the 4th generation returns the usage
 limit message. (The first request after idle may take ~1 minute to wake Render.)
 
 ### Alternatives verified during research
@@ -385,9 +383,9 @@ limit message. (The first request after idle may take ~1 minute to wake Render.)
   multi-instance deployment would need a shared store (e.g. Redis). This is
   deliberate cost control for a free tier, not a billing system.
 - **Model quality:** tiny local models (e.g. `qwen2.5:1.5b`) can be inaccurate or
-  produce weak translations. The backend rejects output that is clearly in the
-  wrong script (e.g. English for Hindi), but it cannot judge translation
-  quality. Use a stronger model for non-English production use.
+  miss detail. Use a stronger model (or Groq's Llama 3.1 8B) when summary
+  quality matters. Output is English only by design, since that is what the
+  free-tier models handle reliably.
 - **Free-host cold starts:** Render free services sleep; the first request can
   take ~1 minute.
 - **MP3 downloads** rely on gTTS (Google's public speech endpoint, no key). It can

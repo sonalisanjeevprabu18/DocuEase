@@ -6,6 +6,8 @@ import {
   getOrCreateSessionId,
   resetSessionId,
   SESSION_KEY,
+  splitDocumentSections,
+  splitMarkdownSections,
   toPlainText,
   validateFileClientSide,
 } from "../utils.js";
@@ -85,6 +87,37 @@ describe("validateFileClientSide", () => {
     expect(validateFileClientSide(file("a.pdf", 6 * 1024 * 1024))).toMatch(/limit/);
     expect(validateFileClientSide(file("a.txt", 0))).toMatch(/empty/);
     expect(validateFileClientSide(null)).toMatch(/Choose a document/);
+  });
+});
+
+describe("section splitting", () => {
+  it("splits generated markdown on level-2 headings", () => {
+    const sections = splitMarkdownSections(
+      "Intro.\n\n## First\n\nA.\n\n## Second\n\nB.",
+    );
+    expect(sections).toHaveLength(3);
+    expect(sections[0].title).toBeNull();
+    expect(sections[1]).toEqual({ title: "First", body: "A." });
+    expect(sections[2]).toEqual({ title: "Second", body: "B." });
+  });
+
+  it("returns a single section for plain output", () => {
+    const sections = splitMarkdownSections("Just one paragraph.");
+    expect(sections).toHaveLength(1);
+    expect(sections[0].title).toBeNull();
+  });
+
+  it("builds navigable ids from extracted document headings", () => {
+    const sections = splitDocumentSections("# Title\n\nBody.\n\n## Part two\n\nMore.");
+    expect(sections).toHaveLength(2);
+    expect(sections[0]).toMatchObject({ id: "doc-section-0", title: "Title", level: 1 });
+    expect(sections[1]).toMatchObject({ id: "doc-section-1", title: "Part two", level: 2 });
+  });
+
+  it("handles documents without headings", () => {
+    const sections = splitDocumentSections("Plain text only.");
+    expect(sections).toHaveLength(1);
+    expect(sections[0].title).toBe("");
   });
 });
 

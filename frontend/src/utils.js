@@ -84,6 +84,54 @@ export function downloadBlob(content, filename, mime = "text/plain;charset=utf-8
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Split a generated explanation into its `##` sections for disclosure UI. */
+export function splitMarkdownSections(markdown) {
+  const lines = (markdown || "").replace(/\r\n/g, "\n").split("\n");
+  const raw = [];
+  let current = { title: null, lines: [] };
+
+  for (const line of lines) {
+    const match = /^##\s+(.+?)\s*$/.exec(line);
+    if (match) {
+      if (current.title !== null || current.lines.join("").trim()) raw.push(current);
+      current = { title: match[1].replace(/#+$/, "").trim(), lines: [] };
+    } else {
+      current.lines.push(line);
+    }
+  }
+  if (current.title !== null || current.lines.join("").trim()) raw.push(current);
+
+  return raw.map((section) => ({
+    title: section.title,
+    body: section.lines.join("\n").trim(),
+  }));
+}
+
+/** Split extracted document text into heading-delimited sections for navigation. */
+export function splitDocumentSections(text) {
+  const lines = (text || "").replace(/\r\n/g, "\n").split("\n");
+  const raw = [];
+  let current = { title: "", level: 0, lines: [] };
+
+  for (const line of lines) {
+    const match = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
+    if (match) {
+      if (current.title || current.lines.join("").trim()) raw.push(current);
+      current = { title: match[2].trim(), level: match[1].length, lines: [] };
+    } else {
+      current.lines.push(line);
+    }
+  }
+  if (current.title || current.lines.join("").trim()) raw.push(current);
+
+  return raw.map((section, index) => ({
+    id: `doc-section-${index}`,
+    title: section.title,
+    level: section.level,
+    body: section.lines.join("\n").trim(),
+  }));
+}
+
 export function downloadText(content, filename, format) {
   const mime = format === "md"
     ? "text/markdown;charset=utf-8"

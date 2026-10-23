@@ -69,11 +69,6 @@ class TextTooLong(ApiError):
     code = "text_too_long"
 
 
-class LanguageUnsupported(ApiError):
-    status_code = 422
-    code = "language_unsupported"
-
-
 class UsageLimitExceeded(ApiError):
     status_code = 429
     code = "usage_limit_exceeded"

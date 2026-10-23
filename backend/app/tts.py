@@ -20,15 +20,10 @@ from .errors import ApiError, ProviderUnavailable
 
 logger = logging.getLogger(__name__)
 
-# Our language codes -> gTTS (Google Translate) codes.
-_GTTS_LANG = {
-    "en": "en", "hi": "hi", "es": "es", "fr": "fr", "de": "de",
-    "pt": "pt", "bn": "bn", "ja": "ja", "zh": "zh-CN", "ar": "ar",
-    "ru": "ru",
-}
+GTTS_LANG = "en"
 
 
-def synthesize(text: str, language: str, max_chars: int) -> bytes:
+def synthesize(text: str, max_chars: int) -> bytes:
     """Return MP3 bytes for ``text`` or raise a typed ApiError."""
     if len(text) > max_chars:
         raise ApiError(
@@ -36,18 +31,11 @@ def synthesize(text: str, language: str, max_chars: int) -> bytes:
             f"limit {max_chars:,}). Generate audio for a shorter text.",
             code="tts_text_too_long", status_code=413,
         )
-    lang = _GTTS_LANG.get(language)
-    if lang is None:
-        raise ApiError(
-            f"Audio download is not available for language '{language}'. "
-            "Use the in-browser player instead.",
-            code="tts_language_unsupported", status_code=422,
-        )
     try:
         from io import BytesIO
 
         buf = BytesIO()
-        gTTS(text=text, lang=lang, slow=False).write_to_fp(buf)
+        gTTS(text=text, lang=GTTS_LANG, slow=False).write_to_fp(buf)
         data = buf.getvalue()
     except gTTSError as exc:
         logger.warning("gTTS request failed: %s", type(exc).__name__)

@@ -45,8 +45,8 @@ def test_config_public_catalogue(client):
     body = client.get("/api/config").json()
     assert len(body["formats"]) == 8
     assert {f["id"] for f in body["formats"]} >= {"qa", "study_notes", "section_wise"}
-    codes = {lang["code"] for lang in body["languages"]}
-    assert {"en", "hi", "es", "ja"} <= codes
+    assert body["formats"][0]["label"] == "Quick Summary"
+    assert "languages" not in body  # English only: no language selector to serve
     assert body["limits"]["max_upload_mb"] == 5.0
     assert body["limits"]["max_extracted_chars"] == 20_000
     assert body["limits"]["max_generations_per_session"] == 3
@@ -180,46 +180,6 @@ def test_generate_success(client, fake_provider):
     assert "English" in call["messages"][0]["content"]
 
 
-def test_generate_hindi_prompt_requests_hindi(client, fake_provider):
-    fake_provider.reply = "यह दस्तावेज़ का सारांश है।"
-    r = client.post("/api/generate", json=generate_payload(language="hi"))
-    assert r.status_code == 200
-    system = fake_provider.calls[0]["messages"][0]["content"]
-    user = fake_provider.calls[0]["messages"][1]["content"]
-    assert "Hindi" in system
-    assert "Hindi" in user
-
-
-def test_wrong_language_output_rejected_without_credit(client, fake_provider):
-    fake_provider.reply = "This answer is entirely in English."
-    r = client.post("/api/generate", json=generate_payload(language="hi"))
-    assert r.status_code == 422
-    body = r.json()["error"]
-    assert body["code"] == "language_unsupported"
-    assert "Hindi" in body["message"]
-
-    # The failed attempt must not consume a generation credit.
-    ok = client.post("/api/generate", json=generate_payload(language="en"))
-    assert ok.status_code == 200
-    assert ok.json()["usage"]["used"] == 1
-
-
-def test_correct_hindi_output_accepted(client, fake_provider):
-    fake_provider.reply = "यह दस्तावेज़ का सारांश है।"
-    r = client.post("/api/generate", json=generate_payload(language="hi"))
-    assert r.status_code == 200
-    assert r.json()["usage"]["used"] == 1
-
-
-def test_generate_unsupported_language(client, fake_provider):
-    r = client.post("/api/generate", json=generate_payload(language="xx"))
-    assert r.status_code == 422
-    body = r.json()["error"]
-    assert body["code"] == "language_unsupported"
-    assert "en" in body["supported"]
-    assert fake_provider.calls == []
-
-
 def test_generate_empty_text(client):
     r = client.post("/api/generate", json=generate_payload("   "))
     assert r.status_code == 422
@@ -291,7 +251,7 @@ def test_provider_rate_limit_surfaced(client, fake_provider):
 # --- Demo mode ---------------------------------------------------------------
 def test_demo_generate_needs_no_ai(client, fake_provider):
     r = client.post("/api/demo/generate",
-                    json={"format": "bullet_points", "language": "en", "session_id": SID})
+                    json={"format": "bullet_points", "session_id": SID})
     assert r.status_code == 200
     body = r.json()
     assert body["provider"] == "demo"
@@ -300,17 +260,10 @@ def test_demo_generate_needs_no_ai(client, fake_provider):
     assert fake_provider.calls == []
 
 
-def test_demo_other_language_notes_english_sample(client):
-    r = client.post("/api/demo/generate",
-                    json={"format": "short_summary", "language": "hi"})
-    assert r.status_code == 200
-    assert "pre-written English sample" in r.json()["output"]
-
-
 def test_demo_does_not_consume_generation_quota(client):
     for _ in range(5):
         assert client.post("/api/demo/generate",
-                           json={"format": "qa", "language": "en"}).status_code == 200
+                           json={"format": "qa"}).status_code == 200
     r = client.post("/api/generate", json=generate_payload())
     assert r.json()["usage"]["used"] == 1
 
@@ -320,7 +273,7 @@ def test_demo_disabled(settings):
     app = create_app(settings)
     app.state.provider = FakeProvider()
     with TestClient(app) as c:
-        r = c.post("/api/demo/generate", json={"format": "qa", "language": "en"})
+        r = c.post("/api/demo/generate", json={"format": "qa"})
         assert r.status_code == 403
         assert r.json()["error"]["code"] == "demo_disabled"
 
@@ -328,9 +281,8 @@ def test_demo_disabled(settings):
 # --- TTS ---------------------------------------------------------------------
 def test_tts_returns_real_audio_response(client, monkeypatch):
     monkeypatch.setattr("app.main.synthesize",
-                        lambda text, language, max_chars: b"ID3\x04FAKE_MP3")
-    r = client.post("/api/tts", json={"text": "Hello", "language": "en",
-                                      "session_id": SID})
+                        lambda text, max_chars: b"ID3\x04FAKE_MP3")
+    r = client.post("/api/tts", json={"text": "Hello", "session_id": SID})
     assert r.status_code == 200
     assert r.headers["content-type"] == "audio/mpeg"
     assert "attachment" in r.headers["content-disposition"]
@@ -342,7 +294,7 @@ def test_tts_disabled(settings, monkeypatch):
     app = create_app(settings)
     app.state.provider = FakeProvider()
     with TestClient(app) as c:
-        r = c.post("/api/tts", json={"text": "Hello", "language": "en"})
+        r = c.post("/api/tts", json={"text": "Hello"})
         assert r.status_code == 404
         assert r.json()["error"]["code"] == "tts_disabled"
 
@@ -352,19 +304,12 @@ def test_tts_guards_before_network():
     from app.tts import synthesize
 
     try:
-        synthesize("x" * 5000, "en", 4000)
+        synthesize("x" * 5000, 4000)
     except ApiError as exc:
         assert exc.code == "tts_text_too_long"
         assert exc.status_code == 413
     else:
         raise AssertionError("expected tts_text_too_long")
-
-    try:
-        synthesize("hello", "xx", 4000)
-    except ApiError as exc:
-        assert exc.code == "tts_language_unsupported"
-    else:
-        raise AssertionError("expected tts_language_unsupported")
 
 
 # --- Rate limiting -----------------------------------------------------------
