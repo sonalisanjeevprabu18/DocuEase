@@ -211,3 +211,18 @@ def test_build_provider_openai_compatible():
 def test_build_provider_rejects_unknown():
     with pytest.raises(RuntimeError):
         build_provider(Settings(_env_file=None, ai_provider="nonsense"))
+
+
+def test_key_alone_selects_openai_provider(monkeypatch):
+    # A host with only a key and no Ollama daemon needs no second switch.
+    monkeypatch.delenv("AI_PROVIDER", raising=False)
+    provider = build_provider(Settings(_env_file=None, openai_api_key="k"))
+    assert isinstance(provider, OpenAICompatibleProvider)
+
+
+def test_explicit_ollama_wins_over_a_key(monkeypatch):
+    monkeypatch.delenv("AI_PROVIDER", raising=False)
+    provider = build_provider(
+        Settings(_env_file=None, ai_provider="ollama", openai_api_key="k")
+    )
+    assert isinstance(provider, OllamaProvider)

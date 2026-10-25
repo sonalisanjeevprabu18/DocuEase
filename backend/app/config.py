@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # Comma separated list of allowed origins. In production this must be the
     # real frontend domain (e.g. https://docuease.vercel.app).
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # Optional regex for preview deployments whose hostname changes on every
+    # build, e.g. r"https://.*\.vercel\.app". Empty means origins only.
+    allowed_origin_regex: str = ""
 
     @property
     def cors_origins(self) -> list[str]:

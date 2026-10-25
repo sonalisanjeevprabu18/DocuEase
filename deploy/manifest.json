@@ -1,0 +1,7 @@
+{
+  "entrypoint": "worker.mjs",
+  "compatibilityDate": "2026-10-25",
+  "modules": [{ "name": "worker.mjs", "type": "esm", "path": "./worker.mjs" }],
+  "assetsDirectory": "./assets",
+  "spa": true
+}

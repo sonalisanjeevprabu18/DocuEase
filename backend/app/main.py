@@ -13,6 +13,7 @@ This module only wires them together behind HTTP.
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -49,6 +50,18 @@ logger = logging.getLogger(__name__)
 
 def _mb(n: int) -> float:
     return round(n / (1024 * 1024), 1)
+
+
+def _revision() -> str:
+    """Short commit id of the running build, when the host exposes one.
+
+    Lets a deployment be identified from /health without shell access.
+    """
+    for name in ("VERCEL_GIT_COMMIT_SHA", "RENDER_GIT_COMMIT", "GIT_COMMIT"):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value[:12]
+    return ""
 
 
 def _client_ip(request: Request) -> str:
@@ -147,6 +160,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        allow_origin_regex=settings.allowed_origin_regex or None,
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
@@ -170,6 +184,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             provider_configured=configured,
             provider_reachable=reachable,
             environment=settings.environment,
+            revision=_revision(),
         )
 
     @app.get("/", tags=["ops"])

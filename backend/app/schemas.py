@@ -97,3 +97,4 @@ class HealthResponse(BaseModel):
     provider_configured: bool
     provider_reachable: bool | None = None
     environment: str
+    revision: str = ""

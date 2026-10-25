@@ -234,8 +234,16 @@ class OpenAICompatibleProvider(BaseProvider):
 
 def build_provider(settings: Settings,
                    client: httpx.AsyncClient | None = None) -> BaseProvider:
-    """Create the provider declared by configuration. Fails fast when unknown."""
+    """Create the provider declared by configuration. Fails fast when unknown.
+
+    A host that only supplies ``OPENAI_API_KEY`` (no Ollama daemon reachable)
+    needs no second switch: when ``AI_PROVIDER`` was left at its default and a
+    key is present, the OpenAI-compatible provider is used.
+    """
     kind = settings.ai_provider.strip().lower()
+    if (kind == "ollama" and settings.openai_api_key
+            and "ai_provider" not in settings.model_fields_set):
+        kind = "openai_compatible"
     common = dict(timeout=settings.provider_timeout_seconds,
                   connect_timeout=settings.provider_connect_timeout_seconds,
                   client=client)
