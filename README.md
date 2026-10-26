@@ -146,7 +146,8 @@ the hosting dashboard.
 | `OLLAMA_MODEL` | `qwen2.5:1.5b` | Small, fast local model; use `qwen2.5:7b` / `llama3.1:8b` for quality |
 | `OPENAI_BASE_URL` | `https://api.groq.com/openai/v1` | Any OpenAI-compatible `/chat/completions` base |
 | `OPENAI_API_KEY` | *(empty)* | Key for the hosted provider (never expose to the browser) |
-| `AI_MODEL` | `llama-3.1-8b-instant` | Hosted model name |
+| `AI_MODEL` | `openai/gpt-oss-20b` | Hosted model name |
+| `AI_REASONING_EFFORT` | *(empty)* | `low`/`medium`/`high` for reasoning models; blank omits the field |
 | `MAX_UPLOAD_BYTES` | `5242880` | 5 MB upload cap |
 | `MAX_EXTRACTED_CHARS` | `20000` | Per-generation text cap (oversized input is **rejected**) |
 | `MAX_GENERATIONS_PER_SESSION` | `3` | Successful generations per session |
@@ -173,7 +174,8 @@ OLLAMA_MODEL=qwen2.5:1.5b
 AI_PROVIDER=openai_compatible
 OPENAI_BASE_URL=https://api.groq.com/openai/v1
 OPENAI_API_KEY=<your key>
-AI_MODEL=llama-3.1-8b-instant
+AI_MODEL=openai/gpt-oss-20b
+AI_REASONING_EFFORT=low
 
 # OpenRouter free models (also OpenAI-compatible; free models are rate-limited)
 AI_PROVIDER=openai_compatible

@@ -77,6 +77,22 @@ def test_openai_success_and_request_shape():
     assert captured["auth"] == "Bearer test-key"
     assert captured["body"]["max_tokens"] == 1000
     assert captured["body"]["model"] == "test-model"
+    assert "reasoning_effort" not in captured["body"]  # only sent when configured
+
+
+def test_openai_sends_reasoning_effort_when_configured():
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": "ok"}}]
+        })
+
+    provider = openai_provider(handler, reasoning_effort=" low ")
+    assert run(provider.chat(MESSAGES, max_tokens=800)).text == "ok"
+    assert captured["body"]["reasoning_effort"] == "low"
+    assert captured["body"]["max_tokens"] == 800
 
 
 def test_openai_respects_provider_rate_limit():
@@ -201,11 +217,12 @@ def test_build_provider_ollama():
 
 def test_build_provider_openai_compatible():
     provider = build_provider(Settings(
-        _env_file=None, ai_provider="openai_compatible", ai_model="llama-3.1-8b-instant",
-        openai_api_key="k",
+        _env_file=None, ai_provider="openai_compatible", ai_model="openai/gpt-oss-20b",
+        openai_api_key="k", ai_reasoning_effort="low",
     ))
     assert isinstance(provider, OpenAICompatibleProvider)
-    assert provider.model == "llama-3.1-8b-instant"
+    assert provider.model == "openai/gpt-oss-20b"
+    assert provider._reasoning_effort == "low"
 
 
 def test_build_provider_rejects_unknown():

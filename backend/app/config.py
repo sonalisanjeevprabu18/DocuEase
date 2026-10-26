@@ -64,7 +64,13 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5:1.5b"
     openai_base_url: str = "https://api.groq.com/openai/v1"
     openai_api_key: str = ""
-    ai_model: str = "llama-3.1-8b-instant"
+    # Groq retired llama-3.1-8b-instant for free keys; gpt-oss-20b is the fast
+    # model the free tier still serves. Any OpenAI-compatible model id works.
+    ai_model: str = "openai/gpt-oss-20b"
+    # Reasoning models spend completion tokens thinking before answering, which
+    # can exhaust max_output_tokens. "low" keeps notes complete; leave blank to
+    # omit the parameter entirely for endpoints that reject it.
+    ai_reasoning_effort: str = ""
 
     # --- Text-to-speech (optional, real MP3 downloads) -------------------
     # Browser SpeechSynthesis is the default playback path; the server only

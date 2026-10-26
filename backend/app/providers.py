@@ -182,25 +182,30 @@ class OpenAICompatibleProvider(BaseProvider):
     kind = "external"
 
     def __init__(self, model: str, *, base_url: str, api_key: str = "",
+                 reasoning_effort: str = "",
                  timeout: float = 60.0, connect_timeout: float = 5.0,
                  client: httpx.AsyncClient | None = None):
         super().__init__(model, timeout=timeout, connect_timeout=connect_timeout,
                          client=client)
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
+        self._reasoning_effort = reasoning_effort.strip()
 
     async def chat(self, messages: list[dict[str, str]], *, max_tokens: int) -> GenerationOutcome:
         headers = {"Content-Type": "application/json"}
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": 0.3,
+        }
+        if self._reasoning_effort:
+            payload["reasoning_effort"] = self._reasoning_effort
         resp = await self._post(
             f"{self._base_url}/chat/completions",
-            json={
-                "model": self.model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": 0.3,
-            },
+            json=payload,
             headers=headers,
         )
         data = self._json(resp)
@@ -255,6 +260,7 @@ def build_provider(settings: Settings,
             settings.ai_model,
             base_url=settings.openai_base_url,
             api_key=settings.openai_api_key,
+            reasoning_effort=settings.ai_reasoning_effort,
             **common,
         )
         if kind in ("groq", "openrouter"):
