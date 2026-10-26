@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -63,7 +63,14 @@ class Settings(BaseSettings):
     # Use qwen2.5:7b / llama3.1:8b for better quality and multilingual output.
     ollama_model: str = "qwen2.5:1.5b"
     openai_base_url: str = "https://api.groq.com/openai/v1"
-    openai_api_key: str = ""
+    # Hosts disagree on what to call a hosted model key, so the same value is
+    # accepted under any of these names (first one set wins).
+    openai_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "OPENAI_API_KEY", "GROQ_API_KEY", "GROQAPI", "openai_api_key"
+        ),
+    )
     # Groq retired llama-3.1-8b-instant for free keys; gpt-oss-20b is the fast
     # model the free tier still serves. Any OpenAI-compatible model id works.
     ai_model: str = "openai/gpt-oss-20b"

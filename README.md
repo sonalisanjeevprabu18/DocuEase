@@ -145,7 +145,7 @@ the hosting dashboard.
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Local Ollama endpoint |
 | `OLLAMA_MODEL` | `qwen2.5:1.5b` | Small, fast local model; use `qwen2.5:7b` / `llama3.1:8b` for quality |
 | `OPENAI_BASE_URL` | `https://api.groq.com/openai/v1` | Any OpenAI-compatible `/chat/completions` base |
-| `OPENAI_API_KEY` | *(empty)* | Key for the hosted provider (never expose to the browser) |
+| `OPENAI_API_KEY` | *(empty)* | Key for the hosted provider (never expose to the browser). `GROQ_API_KEY` and `GROQAPI` are accepted as aliases |
 | `AI_MODEL` | `openai/gpt-oss-20b` | Hosted model name |
 | `AI_REASONING_EFFORT` | *(empty)* | `low`/`medium`/`high` for reasoning models; blank omits the field |
 | `MAX_UPLOAD_BYTES` | `5242880` | 5 MB upload cap |

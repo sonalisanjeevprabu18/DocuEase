@@ -243,3 +243,13 @@ def test_explicit_ollama_wins_over_a_key(monkeypatch):
         Settings(_env_file=None, ai_provider="ollama", openai_api_key="k")
     )
     assert isinstance(provider, OllamaProvider)
+
+
+@pytest.mark.parametrize("env_name", ["OPENAI_API_KEY", "GROQ_API_KEY", "GROQAPI"])
+def test_api_key_env_aliases(monkeypatch, env_name):
+    # Host dashboards name the same credential differently; all are accepted.
+    for name in ("OPENAI_API_KEY", "GROQ_API_KEY", "GROQAPI"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(env_name, "gsk-from-env")
+    settings = Settings(_env_file=None)
+    assert settings.openai_api_key == "gsk-from-env"
